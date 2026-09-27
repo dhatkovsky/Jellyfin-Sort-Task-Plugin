@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using MediaBrowser.Common.Plugins;
+using MediaBrowser.Common.Configuration; // REQUIRED: For IApplicationPaths
 using MediaBrowser.Model.Plugins;
+using MediaBrowser.Model.Serialization;   // REQUIRED: For IXmlSerializer
 
 namespace Jellyfin.Plugin.SortTitleUpdater
 {
+    // Added IDisposable to explicitly signal the server when garbage collecting the assembly
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IDisposable
     {
         public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
