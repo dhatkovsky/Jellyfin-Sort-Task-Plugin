@@ -55,20 +55,13 @@ jobs:
         if [ -z "$VERSION_TAG" ]; then VERSION_TAG="${{ github.ref_name }}"; fi
         
         VERSION_CLEAN=$(echo $VERSION_TAG | sed 's/^v//')
-        
-        # FIX: Use the stable built-in variable which holds "username/repository" formatted exactly as needed
-        REPO_PATH="$GITHUB_REPOSITORY"
-        REPO_OWNER="${{ github.repository_owner }}"
-        
-        # Construct the precise direct asset download link
-        SOURCE_URL="https://github.com"
         CHECKSUM="${{ steps.calc_md5.outputs.md5 }}"
         CHANGELOG="${{ github.event.release.body }}"
         
         if [ -z "$CHANGELOG" ]; then CHANGELOG="Automated plugin update for version $VERSION_TAG"; fi
         CHANGELOG=$(echo "$CHANGELOG" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
 
-        # Compile the JSON structure using the fixed path variable
+        # Generate the dynamic manifest file using GitHub's native context placeholders directly
         cat <<EOF > manifest.json
         [
           {
@@ -77,20 +70,19 @@ jobs:
             "category": "Library",
             "description": "Encodes media Sort Titles using a strict UTF-16 binary layout via a scheduled library task.",
             "overview": "Forces multi-language custom binary character sorting for all selected libraries by modifying DB metadata and updating local .nfo assets.",
-            "owner": "$REPO_OWNER",
+            "owner": "${{ github.repository_owner }}",
             "versions": [
               {
                 "version": "$VERSION_CLEAN",
                 "changelog": "$CHANGELOG",
                 "targetAbi": "10.12.0.0",
-                "sourceUrl": "$SOURCE_URL",
+                "sourceUrl": "https://github.com{{ github.repository }}/releases/download/$VERSION_TAG/SortTitleUpdater_$VERSION_TAG.zip",
                 "checksum": "$CHECKSUM"
               }
             ]
           }
         ]
         EOF
-
 
     - name: Rename zip to match version tag
       run: mv SortTitleUpdater.zip SortTitleUpdater_${{ github.event.release.tag_name }}.zip
