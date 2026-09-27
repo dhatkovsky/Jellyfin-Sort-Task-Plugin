@@ -65,9 +65,6 @@ jobs:
 
         # Construct the final full package download link safely in plain bash
         FINAL_SOURCE_URL="https://github.com/${REPO_PATH}/releases/download/${VERSION_TAG}/SortTitleUpdater_${VERSION_TAG}.zip"
-        
-        # Build the absolute URL for the raw static plugin image card
-        FINAL_IMAGE_URL="https://github.com/dhatkovsky/Jellyfin-Sort-Task-Plugin/blob/master/Icon.png"
 
         # Write a strict boilerplate structure completely free of inline bash variables
         cat << 'NO_EOF' > template.json
@@ -79,7 +76,7 @@ jobs:
             "description": "Encodes media Sort Titles using a strict UTF-16 binary layout via a scheduled library task.",
             "overview": "Forces multi-language custom binary character sorting for all selected libraries by modifying DB metadata and updating local .nfo assets.",
             "owner": "PLACEHOLDER_OWNER",
-            "imageUrl": "PLACEHOLDER_IMAGE",
+            "imageUrl": "https://github.com/dhatkovsky/Jellyfin-Sort-Task-Plugin/blob/master/Icon.png",
             "versions": [
               {
                 "version": "PLACEHOLDER_VERSION",
@@ -100,7 +97,7 @@ jobs:
            --arg chg "$CHANGELOG" \
            --arg url "$FINAL_SOURCE_URL" \
            --arg chk "$CHECKSUM_VAL" \
-           '..owner = $owner | ..imageUrl = $img | ..versions.version = $ver | ..versions.changelog = $chg | ..versions.sourceUrl = $url | ..versions.checksum = $chk' \
+           '..owner = $owner | ..versions.version = $ver | ..versions.changelog = $chg | ..versions.sourceUrl = $url | ..versions.checksum = $chk' \
            template.json > manifest.json
 
         # Clean up temporary template file
