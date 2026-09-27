@@ -76,7 +76,7 @@ jobs:
             "description": "Encodes media Sort Titles using a strict UTF-16 binary layout via a scheduled library task.",
             "overview": "Forces multi-language custom binary character sorting for all selected libraries by modifying DB metadata and updating local .nfo assets.",
             "owner": "PLACEHOLDER_OWNER",
-            "imageUrl": "https://github.com/dhatkovsky/Jellyfin-Sort-Task-Plugin/blob/master/Icon.png",
+            "imageUrl": "https://raw.githubusercontent.com/dhatkovsky/Jellyfin-Sort-Task-Plugin/master/Icon.png",
             "versions": [
               {
                 "version": "PLACEHOLDER_VERSION",
