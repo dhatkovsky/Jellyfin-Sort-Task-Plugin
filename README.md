@@ -13,7 +13,7 @@ The plugin takes the original `Title` (Name) of any media asset and encodes ever
 *Example:* A regular space character (`0x0020`) becomes encoded as **`aaca-`**. 
 
 ## Features
-* **Full Media Support:** Processes Movies, Series, Seasons, Episodes, Music Artists, Albums, Audio Tracks, Books, and BoxSets.
+* **Full Media Support:** Processes Movies, Series, Music Artists, Albums, Audio Tracks, Books, and BoxSets.
 * **Granular Control:** Includes a native-designed configuration page where you can check/uncheck specific server libraries (Virtual Folders).
 * **Deep Sync Integration:** Bypasses standard core file-system locks (`ForcedSortName`), writing the generated `<sorttitle>` directly into local `.nfo` files and syncing metadata seamlessly with the SQLite database.
 * **Native Look & Feel:** Configuration dashboard aligns perfectly with any active Jellyfin web-client design theme and includes success toast alerts.
