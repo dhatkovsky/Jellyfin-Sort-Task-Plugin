@@ -14,13 +14,13 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.SortTitleUpdater
 {
-    public class UpdateSortTitleTask : IScheduledTask
+    // Implemented IDisposable to safely release server managers during plugin uninstallation
+    public class UpdateSortTitleTask : IScheduledTask, IDisposable
     {
-        private readonly ILibraryManager _libraryManager;
-        private readonly IProviderManager _providerManager;
-        private readonly ILogger<UpdateSortTitleTask> _logger;
+        private ILibraryManager _libraryManager;
+        private IProviderManager _providerManager;
+        private ILogger<UpdateSortTitleTask> _logger;
 
-        // Dependency injection via constructor
         public UpdateSortTitleTask(
             ILibraryManager libraryManager,
             IProviderManager providerManager,
@@ -39,7 +39,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
 
         public string Category => "Library";
 
-        // Defines default execution trigger (e.g., daily at 2:00 AM)
         public IEnumerable<TaskTriggerInfo> GetDefaultTriggers()
         {
             return new[]
@@ -54,7 +53,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
 
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
-            // Load plugin configuration
             var config = Plugin.Instance?.Configuration;
             if (config == null || config.TargetLibraryIds == null || config.TargetLibraryIds.Count == 0)
             {
@@ -63,7 +61,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                 return;
             }
 
-            // Supported media kinds to search for (Seasons and Episodes excluded to preserve native numeric index sorting)
             var allMediaKinds = new[]
             {
                 BaseItemKind.Movie,
@@ -77,7 +74,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                 BaseItemKind.BoxSet
             };
 
-            // Query items recursively filtering by selected ancestor library IDs
             var query = new InternalItemsQuery
             {
                 IncludeItemTypes = allMediaKinds,
@@ -96,7 +92,7 @@ namespace Jellyfin.Plugin.SortTitleUpdater
 
             double total = items.Count;
             double current = 0;
-            var savers = new[] { "Nfo" }; // Identifies the local NFO metadata saver component
+            var savers = new[] { "Nfo" };
 
             foreach (var item in items)
             {
@@ -104,12 +100,9 @@ namespace Jellyfin.Plugin.SortTitleUpdater
 
                 if (item != null && !string.IsNullOrEmpty(item.Name))
                 {
-                    // 1 & 2: Trim leading/trailing spaces and transform string to Upper Case to normalize sorting
                     string normalizedName = item.Name.Trim().ToUpperInvariant();
-
                     var sb = new StringBuilder();
 
-                    // Convert each character of the normalized Title to 4-digit hexadecimal UTF-16 representation
                     foreach (char c in normalizedName)
                     {
                         ushort code = c;
@@ -119,7 +112,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                         int digit3 = (code >> 4) & 0xF;
                         int digit4 = code & 0xF;
 
-                        // Shift each hex digit value to latin characters 'a' through 'p'
                         sb.Append((char)('a' + digit1));
                         sb.Append((char)('a' + digit2));
                         sb.Append((char)('a' + digit3));
@@ -129,28 +121,19 @@ namespace Jellyfin.Plugin.SortTitleUpdater
 
                     string newSortTitle = sb.ToString();
 
-                    // Compare against the forced sort name to detect modifications
                     if (item.ForcedSortName != newSortTitle)
                     {
-                        // Step 1: Assign the custom encoded string to ForcedSortName
                         item.ForcedSortName = newSortTitle;
-
-                        // Step 2: Temporarily lift the main data lock so Jellyfin permits local file modification
                         item.IsLocked = false;
 
-                        // Step 3: Clear individual field locks so the NfoSaver evaluates all properties
                         var originalLockedFields = item.LockedFields.ToArray();
                         item.LockedFields = Array.Empty<MetadataField>();
 
-                        // Step 4: Flush data to the disk. 
-                        // Since IsLocked is false, Jellyfin overrides the NFO file adding <sorttitle>
                         await _providerManager.SaveMetadataAsync(item, ItemUpdateType.MetadataEdit, savers)
                                               .ConfigureAwait(false);
 
-                        // Step 5: Restore the global metadata lock state in memory
                         item.IsLocked = true;
 
-                        // Step 6: Lock the name metadata field to protect it from future automated provider updates
                         var lockedFieldsList = originalLockedFields.ToList();
                         if (!lockedFieldsList.Contains(MetadataField.Name))
                         {
@@ -158,7 +141,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                         }
                         item.LockedFields = lockedFieldsList.ToArray();
 
-                        // Step 7: Apply and commit the final database state to SQLite
                         await _libraryManager.UpdateItemAsync(
                             item,
                             item.GetParent(),
@@ -176,6 +158,14 @@ namespace Jellyfin.Plugin.SortTitleUpdater
             }
 
             _logger.LogInformation("Sort Title encoding task completed successfully.");
+        }
+
+        // Nullify external manager references to clear AppDomain ties upon disposal
+        public void Dispose()
+        {
+            _libraryManager = null!;
+            _providerManager = null!;
+            _logger = null!;
         }
     }
 }

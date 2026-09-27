@@ -4,7 +4,8 @@
             <form id="SortTitleUpdaterForm" class="padded-left padded-right">
 
                 <div class="sectionTitleContainer flex align-items-center">
-                    <h2 class="sectionTitle">Sort Title Updater</h2>
+                    <!-- FIXED: Aligned title header with the official plugin name -->
+                    <h2 class="sectionTitle">SortTitleUpdater</h2>
                 </div>
 
                 <div class="readOnlyContent">
@@ -13,12 +14,10 @@
 
                 <div class="verticalSection">
                     <h3 class="sectionTitle">Available Libraries</h3>
-                    <!-- Target list container for native checkboxes with system paddings -->
                     <div id="LibraryList" class="paperList padded-left padded-right"></div>
                 </div>
 
                 <br />
-                <!-- Native Jellyfin button styled automatically according to the active server theme -->
                 <div class="flex align-items-center justify-content-start">
                     <button type="submit" is="emby-button" class="raised button-submit block emby-button">
                         <span>Save Settings</span>
@@ -37,16 +36,13 @@
                     Dashboard.showLoadingMsg();
                     var page = this;
 
-                    // Fetch all virtual folders/libraries configured on the server
                     ApiClient.getJSON(ApiClient.getUrl('Library/VirtualFolders')).then(function (folders) {
-                        // Fetch current plugin settings
                         ApiClient.getPluginConfiguration(SortTitleUpdaterPage.pluginId).then(function (config) {
                             var html = '';
 
                             folders.forEach(function (folder) {
                                 var checked = (config.TargetLibraryIds || []).indexOf(folder.ItemId) > -1 ? ' checked' : '';
 
-                                // Render using native Jellyfin checkbox layout classes
                                 html += '<div class="checkboxContainer checkboxContainer-withDescription">';
                                 html += '  <label class="emby-checkbox-label">';
                                 html += '    <input type="checkbox" is="emby-checkbox" class="chkLibrary" data-id="' + folder.ItemId + '"' + checked + ' />';
@@ -74,7 +70,6 @@
                         config.TargetLibraryIds = targetLibraryIds;
                         ApiClient.updatePluginConfiguration(SortTitleUpdaterPage.pluginId, config).then(function (result) {
                             Dashboard.hideLoadingMsg();
-                            // Native toast message notification popup
                             toast('Settings saved successfully');
                         });
                     });

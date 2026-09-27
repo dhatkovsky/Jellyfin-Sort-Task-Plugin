@@ -69,7 +69,7 @@ jobs:
         [
           {
             "guid": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-            "name": "Sort Title Updater",
+            "name": "SortTitleUpdater",
             "category": "Library",
             "description": "Encodes media Sort Titles using a strict UTF-16 binary layout via a scheduled library task.",
             "overview": "Forces multi-language custom binary character sorting for all selected libraries by modifying DB metadata and updating local .nfo assets.",
