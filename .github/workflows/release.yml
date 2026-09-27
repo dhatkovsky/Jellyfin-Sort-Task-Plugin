@@ -26,10 +26,10 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore Plugin.csproj
+      run: dotnet restore Jellyfin-Sort-Task-Plugin.csproj
 
     - name: Build and Publish Plugin
-      run: dotnet publish Plugin.csproj -c Release -o ./publish
+      run: dotnet publish Jellyfin-Sort-Task-Plugin.csproj -c Release -o ./publish
 
     - name: Copy raw DLL for Release Assets
       run: cp ./publish/Jellyfin.Plugin.SortTitleUpdater.dll ./Jellyfin.Plugin.SortTitleUpdater.dll
