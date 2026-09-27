@@ -106,7 +106,7 @@ jobs:
         VERSION_TAG="${{ github.event.release.tag_name }}"
         if [ -z "$VERSION_TAG" ]; then VERSION_TAG="${{ github.ref_name }}"; fi
         mv SortTitleUpdater.zip SortTitleUpdater_$VERSION_TAG.zip
-
+        
     - name: Publish All Assets to GitHub Release
       uses: softprops/action-gh-release@v2
       with:
