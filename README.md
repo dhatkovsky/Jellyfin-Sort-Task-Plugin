@@ -23,7 +23,7 @@ The plugin takes the original `Title` (Name) of any media asset and encodes ever
 ### Via Custom Repository (Recommended)
 1. Navigate to your Jellyfin server **Dashboard -> Plugins -> Repositories**.
 2. Click **Add** and paste your custom manifest URL:
-   `https://githubusercontent.com`
+   `https://github.com/dhatkovsky/Jellyfin-Sort-Task-Plugin/releases/download/v1.0.1/manifest.json`
 3. Go to the **Catalog** tab, find **Sort Title Updater**, and click install.
 4. Restart your Jellyfin server.
 
