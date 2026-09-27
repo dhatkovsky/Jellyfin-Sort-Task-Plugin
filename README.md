@@ -44,5 +44,6 @@ The plugin takes the original `Title` (Name) of any media asset and encodes ever
 ## License
 This project is licensed under the MIT License.
 
-## Credits
-A big thank to Google free AI for support
+## Acknowledgments
+* Special thanks to **AI Assistant (ChatGPT)** for architectural design, core development, and setting up the automated CI/CD GitHub Actions pipeline for this plugin.
+* Thanks to the **Jellyfin Community** for providing excellent open-source media server APIs.
