@@ -1,60 +1,9 @@
-name: Build, Package and Publish Release Assets
-
-on:
-  release:
-    types: [published, created, edited]
-  push:
-    tags:
-      - 'v*'
-      - '[0-9]*'
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v5
-      with:
-        fetch-depth: 1 
-
-    - name: Setup .NET 10
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '10.0.x'
-
-    - name: Restore dependencies
-      run: dotnet restore Plugin.csproj
-
-    - name: Build and Publish Plugin
-      run: dotnet publish Plugin.csproj -c Release -o ./publish
-
-    - name: Copy raw DLL for Release Assets
-      run: cp ./publish/Jellyfin.Plugin.SortTitleUpdater.dll ./Jellyfin.Plugin.SortTitleUpdater.dll
-
-    - name: Create Zip Archive
-      run: |
-        cd publish
-        zip -j ../SortTitleUpdater.zip Jellyfin.Plugin.SortTitleUpdater.dll
-        cd ..
-
-    - name: Calculate MD5 Checksum
-      id: calc_md5
-      run: |
-        MD5_HASH=$(md5sum SortTitleUpdater.zip | awk '{ print $1 }')
-        echo "Generated MD5: $MD5_HASH"
-        echo "md5=$MD5_HASH" >> $GITHUB_OUTPUT
-
     - name: Dynamically Generate manifest.json
       # Safe environment injection directly into the runner execution context
       env:
         OWNER_NAME: ${{ github.repository_owner }}
         REPO_PATH: ${{ github.repository }}
         CHECKSUM_VAL: ${{ steps.calc_md5.outputs.md5 }}
-        # Target branch reference for loading the raw static image (main or master)
-        TARGET_BRANCH: ${{ github.event.release.target_commitish || 'main' }}
       run: |
         VERSION_TAG="${{ github.event.release.tag_name }}"
         if [ -z "$VERSION_TAG" ]; then VERSION_TAG="${{ github.ref_name }}"; fi
@@ -63,7 +12,6 @@ jobs:
         CHANGELOG="${{ github.event.release.body }}"
         if [ -z "$CHANGELOG" ]; then CHANGELOG="Automated plugin update for version $VERSION_TAG"; fi
 
-        # Construct the final full package download link safely in plain bash
         FINAL_SOURCE_URL="https://github.com/${REPO_PATH}/releases/download/${VERSION_TAG}/SortTitleUpdater_${VERSION_TAG}.zip"
 
         # Write a strict boilerplate structure completely free of inline bash variables
@@ -92,7 +40,6 @@ jobs:
 
         # Use native 'jq' to securely inject values into the template without character loss or string corruption
         jq --arg owner "$OWNER_NAME" \
-           --arg img "$FINAL_IMAGE_URL" \
            --arg ver "$VERSION_CLEAN" \
            --arg chg "$CHANGELOG" \
            --arg url "$FINAL_SOURCE_URL" \
@@ -102,20 +49,3 @@ jobs:
 
         # Clean up temporary template file
         rm template.json
-
-    - name: Rename zip to match version tag
-      run: |
-        VERSION_TAG="${{ github.event.release.tag_name }}"
-        if [ -z "$VERSION_TAG" ]; then VERSION_TAG="${{ github.ref_name }}"; fi
-        mv SortTitleUpdater.zip SortTitleUpdater_$VERSION_TAG.zip
-
-    - name: Publish All Assets to GitHub Release
-      uses: softprops/action-gh-release@v2
-      with:
-        tag_name: ${{ github.event.release.tag_name || github.ref_name }}
-        files: |
-          Jellyfin.Plugin.SortTitleUpdater.dll
-          manifest.json
-          SortTitleUpdater_*.zip
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
