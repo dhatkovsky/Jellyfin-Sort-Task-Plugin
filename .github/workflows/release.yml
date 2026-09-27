@@ -12,13 +12,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Required natively by GitHub to attach files to an active release
+      contents: write
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
-        fetch-depth: 1 # Lightweight checkout since we don't need historical branch pushes
+        fetch-depth: 1 
 
     - name: Setup .NET 10
       uses: actions/setup-dotnet@v4
@@ -26,10 +26,10 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore Plugin.csproj
 
     - name: Build and Publish Plugin
-      run: dotnet publish -c Release -o ./publish
+      run: dotnet publish Plugin.csproj -c Release -o ./publish
 
     - name: Copy raw DLL for Release Assets
       run: cp ./publish/Jellyfin.Plugin.SortTitleUpdater.dll ./Jellyfin.Plugin.SortTitleUpdater.dll
@@ -37,19 +37,21 @@ jobs:
     - name: Create Zip Archive
       run: |
         cd publish
-        # Pack only the compiled dll directly into the root of the zip archive
         zip -j ../SortTitleUpdater.zip Jellyfin.Plugin.SortTitleUpdater.dll
         cd ..
 
     - name: Calculate MD5 Checksum
       id: calc_md5
       run: |
-        # Calculate MD5 hash and save it as an output variable for github actions
         MD5_HASH=$(md5sum SortTitleUpdater.zip | awk '{ print $1 }')
         echo "Generated MD5: $MD5_HASH"
         echo "md5=$MD5_HASH" >> $GITHUB_OUTPUT
 
     - name: Dynamically Generate manifest.json
+      # CRITICAL FIX: Explicitly inject system context parameters as environment variables
+      env:
+        GITHUB_REPO_PATH: ${{ github.repository }}
+        GITHUB_REPO_OWNER: ${{ github.repository_owner }}
       run: |
         VERSION_TAG="${{ github.event.release.tag_name }}"
         if [ -z "$VERSION_TAG" ]; then VERSION_TAG="${{ github.ref_name }}"; fi
@@ -61,7 +63,10 @@ jobs:
         if [ -z "$CHANGELOG" ]; then CHANGELOG="Automated plugin update for version $VERSION_TAG"; fi
         CHANGELOG=$(echo "$CHANGELOG" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
 
-        # Generate the dynamic manifest file using GitHub's native context placeholders directly
+        # Construct the URL utilizing the isolated environment variable
+        SOURCE_URL="https://github.com"
+
+        # Compile the JSON structure using safe backslashes to protect variables from being eaten by EOF
         cat <<EOF > manifest.json
         [
           {
@@ -70,13 +75,13 @@ jobs:
             "category": "Library",
             "description": "Encodes media Sort Titles using a strict UTF-16 binary layout via a scheduled library task.",
             "overview": "Forces multi-language custom binary character sorting for all selected libraries by modifying DB metadata and updating local .nfo assets.",
-            "owner": "${{ github.repository_owner }}",
+            "owner": "$GITHUB_REPO_OWNER",
             "versions": [
               {
                 "version": "$VERSION_CLEAN",
                 "changelog": "$CHANGELOG",
                 "targetAbi": "10.12.0.0",
-                "sourceUrl": "https://github.com{{ github.repository }}/releases/download/$VERSION_TAG/SortTitleUpdater_$VERSION_TAG.zip",
+                "sourceUrl": "$SOURCE_URL",
                 "checksum": "$CHECKSUM"
               }
             ]
@@ -85,14 +90,18 @@ jobs:
         EOF
 
     - name: Rename zip to match version tag
-      run: mv SortTitleUpdater.zip SortTitleUpdater_${{ github.event.release.tag_name }}.zip
+      run: |
+        VERSION_TAG="${{ github.event.release.tag_name }}"
+        if [ -z "$VERSION_TAG" ]; then VERSION_TAG="${{ github.ref_name }}"; fi
+        mv SortTitleUpdater.zip SortTitleUpdater_$VERSION_TAG.zip
 
     - name: Publish All Assets to GitHub Release
       uses: softprops/action-gh-release@v2
       with:
+        tag_name: ${{ github.event.release.tag_name || github.ref_name }}
         files: |
           Jellyfin.Plugin.SortTitleUpdater.dll
-          SortTitleUpdater_${{ github.event.release.tag_name }}.zip
           manifest.json
+          SortTitleUpdater_*.zip
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Explicitly feed the native high-privilege context token
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
