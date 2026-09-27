@@ -34,7 +34,7 @@ jobs:
     - name: Copy raw DLL for Release Assets
       run: cp ./publish/Jellyfin.Plugin.SortTitleUpdater.dll ./Jellyfin.Plugin.SortTitleUpdater.dll
 
-    - name: Create Zip Archive
+    - name: Create Zip Archive 
       run: |
         cd publish
         zip -j ../SortTitleUpdater.zip Jellyfin.Plugin.SortTitleUpdater.dll
