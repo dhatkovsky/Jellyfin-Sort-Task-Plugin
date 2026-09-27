@@ -51,26 +51,24 @@ jobs:
 
     - name: Dynamically Generate manifest.json
       run: |
-        # Retrieve the release tag name (e.g., v1.0.0)
         VERSION_TAG="${{ github.event.release.tag_name }}"
-        # Strip the leading 'v' if present to comply with Jellyfin's version format (e.g., 1.0.0)
+        if [ -z "$VERSION_TAG" ]; then VERSION_TAG="${{ github.ref_name }}"; fi
+        
         VERSION_CLEAN=$(echo $VERSION_TAG | sed 's/^v//')
         
-        # Dynamically fetch repository and owner information
+        # FIX: Use the stable built-in variable which holds "username/repository" formatted exactly as needed
+        REPO_PATH="$GITHUB_REPOSITORY"
         REPO_OWNER="${{ github.repository_owner }}"
-        REPO_NAME="${{ github.event.repository.name }}"
         
-        # Construct the direct download link pointing straight to this specific release asset archive
+        # Construct the precise direct asset download link
         SOURCE_URL="https://github.com"
         CHECKSUM="${{ steps.calc_md5.outputs.md5 }}"
         CHANGELOG="${{ github.event.release.body }}"
         
-        # Set a default changelog fallback if description is empty
         if [ -z "$CHANGELOG" ]; then CHANGELOG="Automated plugin update for version $VERSION_TAG"; fi
-        # Escape newlines and double quotes for valid JSON compliance
         CHANGELOG=$(echo "$CHANGELOG" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
 
-        # Generate the dynamic manifest file into the root directory
+        # Compile the JSON structure using the fixed path variable
         cat <<EOF > manifest.json
         [
           {
@@ -92,6 +90,7 @@ jobs:
           }
         ]
         EOF
+
 
     - name: Rename zip to match version tag
       run: mv SortTitleUpdater.zip SortTitleUpdater_${{ github.event.release.tag_name }}.zip
