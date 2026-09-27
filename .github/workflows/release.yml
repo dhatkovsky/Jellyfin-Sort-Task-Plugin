@@ -112,4 +112,7 @@ jobs:
         # Stage, commit and push changes back to the target branch (skipping CI to avoid recursion loops)
         git add manifest.json
         git commit -m "chore: automated manifest update for version $VERSION_TAG [skip ci]"
-        git push origin HEAD:${{ github.event.release.target_commitish }}
+        # Dynamically determines the current default branch name and pushes updates directly
+        CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+        git push origin HEAD:$CURRENT_BRANCH
+
