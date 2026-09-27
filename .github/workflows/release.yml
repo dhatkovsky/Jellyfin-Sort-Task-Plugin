@@ -14,7 +14,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        fetch-depth: 0 # Fetches all history for a successful git push operation
+        # CRITICAL FIX: Force checkout to use the branch context instead of the detached tag commit
+        ref: ${{ github.event.release.target_commitish }}
+        fetch-depth: 0 
 
     - name: Setup .NET 10
       uses: actions/setup-dotnet@v4
@@ -58,7 +60,7 @@ jobs:
       with:
         upload_url: ${{ github.event.release.upload_url }}
         asset_path: ./SortTitleUpdater.zip
-        asset_name: SortTitleUpdater_${{ github.event.release.target_commitish }}.zip
+        asset_name: SortTitleUpdater_${{ github.event.release.tag_name }}.zip
         asset_content_type: application/zip
 
     - name: Automatically Update manifest.json
@@ -71,6 +73,7 @@ jobs:
         # Dynamically fetch repository information
         REPO_OWNER="${{ github.repository_owner }}"
         REPO_NAME="${{ github.event.repository.name }}"
+        TARGET_BRANCH="${{ github.event.release.target_commitish }}"
         
         # Construct the direct download link for the release asset archive
         SOURCE_URL="https://github.com"
@@ -107,12 +110,9 @@ jobs:
 
         # Configure GitHub Actions bot profile for committing
         git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@://github.com"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
         
-        # Stage, commit and push changes back to the target branch (skipping CI to avoid recursion loops)
+        # Stage, commit and explicitly push changes back to the origin target branch
         git add manifest.json
         git commit -m "chore: automated manifest update for version $VERSION_TAG [skip ci]"
-        # Dynamically determines the current default branch name and pushes updates directly
-        CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
-        git push origin HEAD:$CURRENT_BRANCH
-
+        git push origin HEAD:$TARGET_BRANCH
