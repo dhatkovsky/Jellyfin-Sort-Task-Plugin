@@ -62,7 +62,9 @@ jobs:
         if [ -z "$CHANGELOG" ]; then CHANGELOG="Automated plugin update for version $VERSION_TAG"; fi
 
         # Construct the final full package download link safely in plain bash
-        FINAL_SOURCE_URL="https://github.com{REPO_PATH}/releases/download/${VERSION_TAG}/SortTitleUpdater_${VERSION_TAG}.zip"
+        FINAL_SOURCE_URL="https://github.com/${REPO_PATH}/releases/download/${VERSION_TAG}/SortTitleUpdater_${VERSION_TAG}.zip"
+
+
 
         # Write a strict boilerplate structure completely free of inline bash variables
         cat << 'NO_EOF' > template.json
