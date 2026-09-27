@@ -1,0 +1,85 @@
+﻿<div id="SortTitleUpdaterConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="loading,elements,formhelper,toast">
+    <div data-role="content">
+        <div class="content-primary">
+            <form id="SortTitleUpdaterForm" class="padded-left padded-right">
+
+                <div class="sectionTitleContainer flex align-items-center">
+                    <h2 class="sectionTitle">Sort Title Updater</h2>
+                </div>
+
+                <div class="readOnlyContent">
+                    <p class="textMuted">Select the libraries whose media cards will be automatically processed during the scheduled task execution.</p>
+                </div>
+
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Available Libraries</h3>
+                    <!-- Target list container for native checkboxes with system paddings -->
+                    <div id="LibraryList" class="paperList padded-left padded-right"></div>
+                </div>
+
+                <br />
+                <!-- Native Jellyfin button styled automatically according to the active server theme -->
+                <div class="flex align-items-center justify-content-start">
+                    <button type="submit" is="emby-button" class="raised button-submit block emby-button">
+                        <span>Save Settings</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+                var SortTitleUpdaterPage = {
+                    pluginId: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d'
+                };
+
+                $('#SortTitleUpdaterConfigPage').on('pageshow', function () {
+                    Dashboard.showLoadingMsg();
+                    var page = this;
+
+                    // Fetch all virtual folders/libraries configured on the server
+                    ApiClient.getJSON(ApiClient.getUrl('Library/VirtualFolders')).then(function (folders) {
+                        // Fetch current plugin settings
+                        ApiClient.getPluginConfiguration(SortTitleUpdaterPage.pluginId).then(function (config) {
+                            var html = '';
+
+                            folders.forEach(function (folder) {
+                                var checked = (config.TargetLibraryIds || []).indexOf(folder.ItemId) > -1 ? ' checked' : '';
+
+                                // Render using native Jellyfin checkbox layout classes
+                                html += '<div class="checkboxContainer checkboxContainer-withDescription">';
+                                html += '  <label class="emby-checkbox-label">';
+                                html += '    <input type="checkbox" is="emby-checkbox" class="chkLibrary" data-id="' + folder.ItemId + '"' + checked + ' />';
+                                html += '    <span class="checkboxLabel">' + folder.Name + '</span>';
+                                html += '  </label>';
+                                html += '</div>';
+                            });
+
+                            $('#LibraryList', page).html(html);
+                            Dashboard.hideLoadingMsg();
+                        });
+                    });
+                });
+
+                $('#SortTitleUpdaterForm').on('submit', function () {
+                    Dashboard.showLoadingMsg();
+                    var page = this;
+
+                    var targetLibraryIds = [];
+                    $('.chkLibrary:checked', page).each(function () {
+                        targetLibraryIds.push($(this).attr('data-id'));
+                    });
+
+                    ApiClient.getPluginConfiguration(SortTitleUpdaterPage.pluginId).then(function (config) {
+                        config.TargetLibraryIds = targetLibraryIds;
+                        ApiClient.updatePluginConfiguration(SortTitleUpdaterPage.pluginId, config).then(function (result) {
+                            Dashboard.hideLoadingMsg();
+                            // Native toast message notification popup
+                            toast('Settings saved successfully');
+                        });
+                    });
+
+                    return false;
+                });
+    </script>
+</div>

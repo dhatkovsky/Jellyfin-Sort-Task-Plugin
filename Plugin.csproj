@@ -1,0 +1,22 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<AnalysisLevel>latest</AnalysisLevel>
+		<!-- Hardcode the assembly name to ensure consistent embedded resource paths -->
+		<AssemblyName>Jellyfin.Plugin.SortTitleUpdater</AssemblyName>
+		<RootNamespace>Jellyfin.Plugin.SortTitleUpdater</RootNamespace>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<!-- Core Jellyfin packages (v10.12.x / 12.x) -->
+		<PackageReference Include="Jellyfin.Controller" Version="10.12.*" PrivateAssets="All" />
+		<PackageReference Include="Jellyfin.Model" Version="10.12.*" PrivateAssets="All" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<!-- Include the HTML configuration page as an embedded resource -->
+		<EmbeddedResource Include="configpage.html" />
+	</ItemGroup>
+</Project>

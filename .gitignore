@@ -1,0 +1,17 @@
+## Visual Studio / Roslyn / .NET Core
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.suo
+*.user
+*.sln.docstates
+
+## JetBrains Rider / VS Code
+.idea/
+.vscode/
+*.userprefs
+
+## OS generated files
+.DS_Store
+Thumbs.db
