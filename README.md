@@ -45,4 +45,4 @@ The plugin takes the original `Title` (Name) of any media asset and encodes ever
 This project is licensed under the MIT License.
 
 ## Credits
-This project was created by impressive free Google AI
+A big thank to Google free AI for support
