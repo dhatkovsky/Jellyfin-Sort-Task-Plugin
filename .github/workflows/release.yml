@@ -53,6 +53,8 @@ jobs:
         OWNER_NAME: ${{ github.repository_owner }}
         REPO_PATH: ${{ github.repository }}
         CHECKSUM_VAL: ${{ steps.calc_md5.outputs.md5 }}
+        # Target branch reference for loading the raw static image (main or master)
+        TARGET_BRANCH: ${{ github.event.release.target_commitish || 'main' }}
       run: |
         VERSION_TAG="${{ github.event.release.tag_name }}"
         if [ -z "$VERSION_TAG" ]; then VERSION_TAG="${{ github.ref_name }}"; fi
@@ -63,8 +65,9 @@ jobs:
 
         # Construct the final full package download link safely in plain bash
         FINAL_SOURCE_URL="https://github.com/${REPO_PATH}/releases/download/${VERSION_TAG}/SortTitleUpdater_${VERSION_TAG}.zip"
-
-
+        
+        # Build the absolute URL for the raw static plugin image card
+        FINAL_IMAGE_URL="https://github.com/dhatkovsky/Jellyfin-Sort-Task-Plugin/blob/master/Icon.png"
 
         # Write a strict boilerplate structure completely free of inline bash variables
         cat << 'NO_EOF' > template.json
@@ -76,6 +79,7 @@ jobs:
             "description": "Encodes media Sort Titles using a strict UTF-16 binary layout via a scheduled library task.",
             "overview": "Forces multi-language custom binary character sorting for all selected libraries by modifying DB metadata and updating local .nfo assets.",
             "owner": "PLACEHOLDER_OWNER",
+            "imageUrl": "PLACEHOLDER_IMAGE",
             "versions": [
               {
                 "version": "PLACEHOLDER_VERSION",
@@ -91,11 +95,12 @@ jobs:
 
         # Use native 'jq' to securely inject values into the template without character loss or string corruption
         jq --arg owner "$OWNER_NAME" \
+           --arg img "$FINAL_IMAGE_URL" \
            --arg ver "$VERSION_CLEAN" \
            --arg chg "$CHANGELOG" \
            --arg url "$FINAL_SOURCE_URL" \
            --arg chk "$CHECKSUM_VAL" \
-           '.[0].owner = $owner | .[0].versions[0].version = $ver | .[0].versions[0].changelog = $chg | .[0].versions[0].sourceUrl = $url | .[0].versions[0].checksum = $chk' \
+           '..owner = $owner | .[].imageUrl = $img | ..versions.version = $ver | ..versions.changelog = $chg | ..versions.sourceUrl = $url | ..versions.checksum = $chk' \
            template.json > manifest.json
 
         # Clean up temporary template file
