@@ -1,4 +1,4 @@
-name: Build, Package and Auto-Update Manifest
+name: Build, Package and Publish Release Assets
 
 on:
   release:
@@ -8,15 +8,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: write # Allows the script to commit changes to manifest.json and upload assets to the release
+      contents: write # Required natively by GitHub to attach files to an active release
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        # CRITICAL FIX: Force checkout to use the branch context instead of the detached tag commit
-        ref: ${{ github.event.release.target_commitish }}
-        fetch-depth: 0 
+        fetch-depth: 1 # Lightweight checkout since we don't need historical branch pushes
 
     - name: Setup .NET 10
       uses: actions/setup-dotnet@v4
@@ -47,45 +45,28 @@ jobs:
         echo "Generated MD5: $MD5_HASH"
         echo "md5=$MD5_HASH" >> $GITHUB_OUTPUT
 
-    - name: Upload DLL to GitHub Release Assets
-      uses: shogo82148/actions-upload-release-asset@v1
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./Jellyfin.Plugin.SortTitleUpdater.dll
-        asset_name: Jellyfin.Plugin.SortTitleUpdater.dll
-        asset_content_type: application/octet-stream
-
-    - name: Upload Zip to GitHub Release Assets
-      uses: shogo82148/actions-upload-release-asset@v1
-      with:
-        upload_url: ${{ github.event.release.upload_url }}
-        asset_path: ./SortTitleUpdater.zip
-        asset_name: SortTitleUpdater_${{ github.event.release.tag_name }}.zip
-        asset_content_type: application/zip
-
-    - name: Automatically Update manifest.json
+    - name: Dynamically Generate manifest.json
       run: |
         # Retrieve the release tag name (e.g., v1.0.0)
         VERSION_TAG="${{ github.event.release.tag_name }}"
         # Strip the leading 'v' if present to comply with Jellyfin's version format (e.g., 1.0.0)
         VERSION_CLEAN=$(echo $VERSION_TAG | sed 's/^v//')
         
-        # Dynamically fetch repository information
+        # Dynamically fetch repository and owner information
         REPO_OWNER="${{ github.repository_owner }}"
         REPO_NAME="${{ github.event.repository.name }}"
-        TARGET_BRANCH="${{ github.event.release.target_commitish }}"
         
-        # Construct the direct download link for the release asset archive
+        # Construct the direct download link pointing straight to this specific release asset archive
         SOURCE_URL="https://github.com"
         CHECKSUM="${{ steps.calc_md5.outputs.md5 }}"
         CHANGELOG="${{ github.event.release.body }}"
         
         # Set a default changelog fallback if description is empty
         if [ -z "$CHANGELOG" ]; then CHANGELOG="Automated plugin update for version $VERSION_TAG"; fi
-        # Escape newlines and double quotes for valid JSON compilation
+        # Escape newlines and double quotes for valid JSON compliance
         CHANGELOG=$(echo "$CHANGELOG" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
 
-        # Generate a clean, updated manifest file
+        # Generate the dynamic manifest file into the root directory
         cat <<EOF > manifest.json
         [
           {
@@ -108,11 +89,15 @@ jobs:
         ]
         EOF
 
-        # Configure GitHub Actions bot profile for committing
-        git config --global user.name "github-actions[bot]"
-        git config --global user.email "github-actions[bot]@users.noreply.github.com"
-        
-        # Stage, commit and explicitly push changes back to the origin target branch
-        git add manifest.json
-        git commit -m "chore: automated manifest update for version $VERSION_TAG [skip ci]"
-        git push origin HEAD:$TARGET_BRANCH
+    - name: Rename zip to match version tag
+      run: mv SortTitleUpdater.zip SortTitleUpdater_${{ github.event.release.tag_name }}.zip
+
+    - name: Publish All Assets to GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        files: |
+          Jellyfin.Plugin.SortTitleUpdater.dll
+          SortTitleUpdater_${{ github.event.release.tag_name }}.zip
+          manifest.json
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Explicitly feed the native high-privilege context token
