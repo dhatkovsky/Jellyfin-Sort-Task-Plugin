@@ -100,7 +100,7 @@ jobs:
            --arg chg "$CHANGELOG" \
            --arg url "$FINAL_SOURCE_URL" \
            --arg chk "$CHECKSUM_VAL" \
-           '..owner = $owner | .[].imageUrl = $img | ..versions.version = $ver | ..versions.changelog = $chg | ..versions.sourceUrl = $url | ..versions.checksum = $chk' \
+           '..owner = $owner | ..imageUrl = $img | ..versions.version = $ver | ..versions.changelog = $chg | ..versions.sourceUrl = $url | ..versions.checksum = $chk' \
            template.json > manifest.json
 
         # Clean up temporary template file
