@@ -36,8 +36,34 @@ jobs:
 
     - name: Create Zip Archive
       run: |
+        VERSION_TAG="${{ github.event.release.tag_name }}"
+        if [ -z "$VERSION_TAG" ]; then VERSION_TAG="${{ github.ref_name }}"; fi
+        VERSION_CLEAN=$(echo $VERSION_TAG | sed 's/^v//')
+        REPO_OWNER="${{ github.repository_owner }}"
+
+        # 1. Dynamically calculate the current timestamp in standard ISO 8601 UTC format
+        CURRENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+        # 2. Generate a valid meta.json file directly inside the publish directory
+        cat <<EOF > ./publish/meta.json
+        {
+          "category": "Library",
+          "description": "Encodes media Sort Titles using a strict UTF-16 binary layout via a scheduled library task.",
+          "name": "SortTitleUpdater",
+          "owner": "$REPO_OWNER",
+          "version": "$VERSION_CLEAN",
+          "status": "Active",
+          "guid": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
+          "timestamp": "$CURRENT_TIMESTAMP"
+        }
+        EOF
+
+        # 3. Copy the icon image into the publish folder if it exists in the repository
+        if [ -f "icon.png" ]; then cp icon.png ./publish/icon.png; fi
+        
         cd publish
-        zip -j ../SortTitleUpdater.zip Jellyfin.Plugin.SortTitleUpdater.dll
+        # Pack the DLL, dynamic meta.json, and the icon asset into the root of the archive
+        zip -r ../SortTitleUpdater.zip ./*
         cd ..
 
     - name: Calculate MD5 Checksum
