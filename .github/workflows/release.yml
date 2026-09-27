@@ -26,15 +26,15 @@ jobs:
         dotnet-version: '10.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore "Jellyfin-Sort-Task-Plugin.csproj"
+      run: dotnet restore Plugin.csproj
 
     - name: Build and Publish Plugin
-      run: dotnet publish "Jellyfin-Sort-Task-Plugin.csproj" -c Release -o ./publish
+      run: dotnet publish Plugin.csproj -c Release -o ./publish
 
     - name: Copy raw DLL for Release Assets
       run: cp ./publish/Jellyfin.Plugin.SortTitleUpdater.dll ./Jellyfin.Plugin.SortTitleUpdater.dll
 
-    - name: Create Zip Archive 
+    - name: Create Zip Archive
       run: |
         cd publish
         zip -j ../SortTitleUpdater.zip Jellyfin.Plugin.SortTitleUpdater.dll
@@ -48,26 +48,24 @@ jobs:
         echo "md5=$MD5_HASH" >> $GITHUB_OUTPUT
 
     - name: Dynamically Generate manifest.json
-      # CRITICAL FIX: Explicitly inject system context parameters as environment variables
+      # Safe environment injection directly into the runner execution context
       env:
-        GITHUB_REPO_PATH: ${{ github.repository }}
-        GITHUB_REPO_OWNER: ${{ github.repository_owner }}
+        OWNER_NAME: ${{ github.repository_owner }}
+        REPO_PATH: ${{ github.repository }}
+        CHECKSUM_VAL: ${{ steps.calc_md5.outputs.md5 }}
       run: |
         VERSION_TAG="${{ github.event.release.tag_name }}"
         if [ -z "$VERSION_TAG" ]; then VERSION_TAG="${{ github.ref_name }}"; fi
         
         VERSION_CLEAN=$(echo $VERSION_TAG | sed 's/^v//')
-        CHECKSUM="${{ steps.calc_md5.outputs.md5 }}"
         CHANGELOG="${{ github.event.release.body }}"
-        
         if [ -z "$CHANGELOG" ]; then CHANGELOG="Automated plugin update for version $VERSION_TAG"; fi
-        CHANGELOG=$(echo "$CHANGELOG" | sed ':a;N;$!ba;s/\n/\\n/g' | sed 's/"/\\"/g')
 
-        # Construct the URL utilizing the isolated environment variable
-        SOURCE_URL="https://github.com"
+        # Construct the final full package download link safely in plain bash
+        FINAL_SOURCE_URL="https://github.com{REPO_PATH}/releases/download/${VERSION_TAG}/SortTitleUpdater_${VERSION_TAG}.zip"
 
-        # Compile the JSON structure using safe backslashes to protect variables from being eaten by EOF
-        cat <<EOF > manifest.json
+        # Write a strict boilerplate structure completely free of inline bash variables
+        cat << 'NO_EOF' > template.json
         [
           {
             "guid": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
@@ -75,19 +73,31 @@ jobs:
             "category": "Library",
             "description": "Encodes media Sort Titles using a strict UTF-16 binary layout via a scheduled library task.",
             "overview": "Forces multi-language custom binary character sorting for all selected libraries by modifying DB metadata and updating local .nfo assets.",
-            "owner": "$GITHUB_REPO_OWNER",
+            "owner": "PLACEHOLDER_OWNER",
             "versions": [
               {
-                "version": "$VERSION_CLEAN",
-                "changelog": "$CHANGELOG",
+                "version": "PLACEHOLDER_VERSION",
+                "changelog": "PLACEHOLDER_CHANGELOG",
                 "targetAbi": "10.12.0.0",
-                "sourceUrl": "$SOURCE_URL",
-                "checksum": "$CHECKSUM"
+                "sourceUrl": "PLACEHOLDER_URL",
+                "checksum": "PLACEHOLDER_CHECKSUM"
               }
             ]
           }
         ]
-        EOF
+        NO_EOF
+
+        # Use native 'jq' to securely inject values into the template without character loss or string corruption
+        jq --arg owner "$OWNER_NAME" \
+           --arg ver "$VERSION_CLEAN" \
+           --arg chg "$CHANGELOG" \
+           --arg url "$FINAL_SOURCE_URL" \
+           --arg chk "$CHECKSUM_VAL" \
+           '.[0].owner = $owner | .[0].versions[0].version = $ver | .[0].versions[0].changelog = $chg | .[0].versions[0].sourceUrl = $url | .[0].versions[0].checksum = $chk' \
+           template.json > manifest.json
+
+        # Clean up temporary template file
+        rm template.json
 
     - name: Rename zip to match version tag
       run: |
