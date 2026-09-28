@@ -106,20 +106,19 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                 string.Join(", ", selectedMediaKinds.Select(k => k.ToString())));
 
 
-            // Считываем выбранные ID библиотек в HashSet для сверхбыстрого поиска в памяти
+            // Load selected library IDs into a HashSet for high-performance memory lookup
             var targetLibraryGuids = new HashSet<Guid>(config.TargetLibraryIds ?? new List<Guid>());
 
-            // Запрашиваем ВСЕ элементы выбранных типов на сервере глобально
+            // Query ALL matching items globally across the server
             var query = new InternalItemsQuery
             {
                 IncludeItemTypes = selectedMediaKinds.ToArray(),
-                Recursive = true
-                // Убрали AncestorIds, чтобы обойти ошибку несовпадения ID виртуальных папок
+                Recursive = true               
             };
 
             var allItems = _libraryManager.GetItemList(query);
 
-            // Фильтруем элементы в памяти: оставляем только те, которые физически находятся внутри выбранных библиотек
+            // Filter items in memory to include only those belonging to the selected target libraries
             var items = allItems.Where(item =>
                 item != null &&
                 item.GetAncestorIds().Any(ancestorId => targetLibraryGuids.Contains(ancestorId))
