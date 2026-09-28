@@ -38,8 +38,8 @@
     <script type="text/javascript">
                 var SortTitleUpdaterPage = {
                     pluginId: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
-                    // Hardcoded available media types matching Jellyfin BaseItemKind names
-                    availableKinds: ["Movie", "Series", "MusicArtist", "MusicAlbum", "Audio", "Book", "AudioBook", "Video", "BoxSet"]
+                    // FIXED: Added Season and Episode options to the web interface array
+                    availableKinds: ["Movie", "Series", "Season", "Episode", "MusicArtist", "MusicAlbum", "Audio", "Book", "AudioBook", "Video", "BoxSet"]
                 };
 
                 $('#SortTitleUpdaterConfigPage').on('pageshow', function () {
@@ -49,7 +49,6 @@
                     ApiClient.getJSON(ApiClient.getUrl('Library/VirtualFolders')).then(function (folders) {
                         ApiClient.getPluginConfiguration(SortTitleUpdaterPage.pluginId).then(function (config) {
 
-                            // 1. Render Libraries
                             var libraryHtml = '';
                             folders.forEach(function (folder) {
                                 var checked = (config.TargetLibraryIds || []).indexOf(folder.ItemId) > -1 ? ' checked' : '';
@@ -62,7 +61,6 @@
                             });
                             $('#LibraryList', page).html(libraryHtml);
 
-                            // 2. Render Media Kinds
                             var mediaHtml = '';
                             var savedKinds = config.TargetMediaKinds || SortTitleUpdaterPage.availableKinds;
                             SortTitleUpdaterPage.availableKinds.forEach(function (kind) {

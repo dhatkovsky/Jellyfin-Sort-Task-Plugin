@@ -45,13 +45,12 @@ namespace Jellyfin.Plugin.SortTitleUpdater
 
     public class PluginConfiguration : BasePluginConfiguration
     {
-        // Selected Library IDs (Virtual Folders)
         public List<Guid> TargetLibraryIds { get; set; } = new();
 
-        // Selected Media Types (Stores string representation of BaseItemKind)
+        // FIXED: Expanded the default list to natively include Season and Episode strings
         public List<string> TargetMediaKinds { get; set; } = new()
         {
-            "Movie", "Series", "MusicArtist", "MusicAlbum", "Audio", "Book", "AudioBook", "Video", "BoxSet"
+            "Movie", "Series", "Season", "Episode", "MusicArtist", "MusicAlbum", "Audio", "Book", "AudioBook", "Video", "BoxSet"
         };
     }
 }

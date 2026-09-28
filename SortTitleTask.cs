@@ -76,6 +76,8 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                 {
                     case "movie": selectedMediaKinds.Add(BaseItemKind.Movie); break;
                     case "series": selectedMediaKinds.Add(BaseItemKind.Series); break;
+                    case "season": selectedMediaKinds.Add(BaseItemKind.Season); break;   // Added
+                    case "episode": selectedMediaKinds.Add(BaseItemKind.Episode); break; // Added
                     case "musicartist": selectedMediaKinds.Add(BaseItemKind.MusicArtist); break;
                     case "musicalbum": selectedMediaKinds.Add(BaseItemKind.MusicAlbum); break;
                     case "audio": selectedMediaKinds.Add(BaseItemKind.Audio); break;
@@ -87,14 +89,15 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                         _logger.LogWarning("Unknown media type string in configuration: {KindStr}", kindStr);
                         break;
                 }
+
             }
 
             if (selectedMediaKinds.Count == 0)
             {
                 _logger.LogWarning("Mapping failed. Forcing all default media kinds to prevent empty task execution.");
                 selectedMediaKinds.AddRange(new[] {
-                    BaseItemKind.Movie, BaseItemKind.Series, BaseItemKind.MusicArtist,
-                    BaseItemKind.MusicAlbum, BaseItemKind.Audio, BaseItemKind.Book,
+                    BaseItemKind.Movie, BaseItemKind.Series, BaseItemKind.Season, BaseItemKind.Episode,
+                    BaseItemKind.MusicArtist, BaseItemKind.MusicAlbum, BaseItemKind.Audio, BaseItemKind.Book,
                     BaseItemKind.AudioBook, BaseItemKind.Video, BaseItemKind.BoxSet
                 });
             }
