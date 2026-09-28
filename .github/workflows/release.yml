@@ -44,7 +44,7 @@ jobs:
         # 1. Dynamically calculate the current timestamp in standard ISO 8601 UTC format
         CURRENT_TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
 
-        # 2. Generate a valid meta.json file directly inside the publish directory
+        # 2. Generate a valid meta.json file directly inside the publish directory with targetAbi included
         cat <<EOF > ./publish/meta.json
         {
           "category": "Library",
@@ -54,7 +54,8 @@ jobs:
           "version": "$VERSION_CLEAN",
           "status": "Active",
           "guid": "a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d",
-          "timestamp": "$CURRENT_TIMESTAMP"
+          "timestamp": "$CURRENT_TIMESTAMP",
+          "targetAbi": "10.12.0.0"
         }
         EOF
 
