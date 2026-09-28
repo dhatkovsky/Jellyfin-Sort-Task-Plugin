@@ -4,17 +4,25 @@
             <form id="SortTitleUpdaterForm" class="padded-left padded-right">
 
                 <div class="sectionTitleContainer flex align-items-center">
-                    <!-- FIXED: Aligned title header with the official plugin name -->
                     <h2 class="sectionTitle">SortTitleUpdater</h2>
                 </div>
 
                 <div class="readOnlyContent">
-                    <p class="textMuted">Select the libraries whose media cards will be automatically processed during the scheduled task execution.</p>
+                    <p class="textMuted">Select target libraries and media types that the scheduled task will automatically process.</p>
                 </div>
 
+                <!-- Section 1: Libraries -->
                 <div class="verticalSection">
-                    <h3 class="sectionTitle">Available Libraries</h3>
+                    <h3 class="sectionTitle">Target Libraries</h3>
                     <div id="LibraryList" class="paperList padded-left padded-right"></div>
+                </div>
+
+                <br />
+
+                <!-- Section 2: Media Kinds -->
+                <div class="verticalSection">
+                    <h3 class="sectionTitle">Target Media Types</h3>
+                    <div id="MediaKindsList" class="paperList padded-left padded-right"></div>
                 </div>
 
                 <br />
@@ -29,7 +37,9 @@
 
     <script type="text/javascript">
                 var SortTitleUpdaterPage = {
-                    pluginId: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d'
+                    pluginId: 'a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d',
+                    // Hardcoded available media types matching Jellyfin BaseItemKind names
+                    availableKinds: ["Movie", "Series", "MusicArtist", "MusicAlbum", "Audio", "Book", "AudioBook", "Video", "BoxSet"]
                 };
 
                 $('#SortTitleUpdaterConfigPage').on('pageshow', function () {
@@ -38,20 +48,34 @@
 
                     ApiClient.getJSON(ApiClient.getUrl('Library/VirtualFolders')).then(function (folders) {
                         ApiClient.getPluginConfiguration(SortTitleUpdaterPage.pluginId).then(function (config) {
-                            var html = '';
 
+                            // 1. Render Libraries
+                            var libraryHtml = '';
                             folders.forEach(function (folder) {
                                 var checked = (config.TargetLibraryIds || []).indexOf(folder.ItemId) > -1 ? ' checked' : '';
-
-                                html += '<div class="checkboxContainer checkboxContainer-withDescription">';
-                                html += '  <label class="emby-checkbox-label">';
-                                html += '    <input type="checkbox" is="emby-checkbox" class="chkLibrary" data-id="' + folder.ItemId + '"' + checked + ' />';
-                                html += '    <span class="checkboxLabel">' + folder.Name + '</span>';
-                                html += '  </label>';
-                                html += '</div>';
+                                libraryHtml += '<div class="checkboxContainer checkboxContainer-withDescription">' +
+                                               '  <label class="emby-checkbox-label">' +
+                                               '    <input type="checkbox" is="emby-checkbox" class="chkLibrary" data-id="' + folder.ItemId + '"' + checked + ' />' +
+                                               '    <span class="checkboxLabel">' + folder.Name + '</span>' +
+                                               '  </label>' +
+                                               '</div>';
                             });
+                            $('#LibraryList', page).html(libraryHtml);
 
-                            $('#LibraryList', page).html(html);
+                            // 2. Render Media Kinds
+                            var mediaHtml = '';
+                            var savedKinds = config.TargetMediaKinds || SortTitleUpdaterPage.availableKinds;
+                            SortTitleUpdaterPage.availableKinds.forEach(function (kind) {
+                                var checked = savedKinds.indexOf(kind) > -1 ? ' checked' : '';
+                                mediaHtml += '<div class="checkboxContainer checkboxContainer-withDescription">' +
+                                             '  <label class="emby-checkbox-label">' +
+                                             '    <input type="checkbox" is="emby-checkbox" class="chkMediaKind" data-kind="' + kind + '"' + checked + ' />' +
+                                             '    <span class="checkboxLabel">' + kind + '</span>' +
+                                             '  </label>' +
+                                             '</div>';
+                            });
+                            $('#MediaKindsList', page).html(mediaHtml);
+
                             Dashboard.hideLoadingMsg();
                         });
                     });
@@ -66,8 +90,15 @@
                         targetLibraryIds.push($(this).attr('data-id'));
                     });
 
+                    var targetMediaKinds = [];
+                    $('.chkMediaKind:checked', page).each(function () {
+                        targetMediaKinds.push($(this).attr('data-kind'));
+                    });
+
                     ApiClient.getPluginConfiguration(SortTitleUpdaterPage.pluginId).then(function (config) {
                         config.TargetLibraryIds = targetLibraryIds;
+                        config.TargetMediaKinds = targetMediaKinds;
+
                         ApiClient.updatePluginConfiguration(SortTitleUpdaterPage.pluginId, config).then(function (result) {
                             Dashboard.hideLoadingMsg();
                             toast('Settings saved successfully');

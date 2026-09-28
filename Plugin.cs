@@ -1,13 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using MediaBrowser.Common.Plugins;
-using MediaBrowser.Common.Configuration; // REQUIRED: For IApplicationPaths
+using MediaBrowser.Common.Configuration;
 using MediaBrowser.Model.Plugins;
-using MediaBrowser.Model.Serialization;   // REQUIRED: For IXmlSerializer
+using MediaBrowser.Model.Serialization;
 
 namespace Jellyfin.Plugin.SortTitleUpdater
 {
-    // Added IDisposable to explicitly signal the server when garbage collecting the assembly
     public class Plugin : BasePlugin<PluginConfiguration>, IHasWebPages, IDisposable
     {
         public Plugin(IApplicationPaths applicationPaths, IXmlSerializer xmlSerializer)
@@ -19,7 +18,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
             Console.WriteLine($"[SortTitleUpdater] Available embedded resources: {string.Join(", ", resources)}");
         }
 
-        // FIXED: Removed spaces from the plugin name to prevent Jellyfin's image path resolution bug
         public override string Name => "SortTitleUpdater";
 
         public override Guid Id => Guid.Parse("a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d");
@@ -47,6 +45,13 @@ namespace Jellyfin.Plugin.SortTitleUpdater
 
     public class PluginConfiguration : BasePluginConfiguration
     {
+        // Selected Library IDs (Virtual Folders)
         public List<Guid> TargetLibraryIds { get; set; } = new();
+
+        // Selected Media Types (Stores string representation of BaseItemKind)
+        public List<string> TargetMediaKinds { get; set; } = new()
+        {
+            "Movie", "Series", "MusicArtist", "MusicAlbum", "Audio", "Book", "AudioBook", "Video", "BoxSet"
+        };
     }
 }

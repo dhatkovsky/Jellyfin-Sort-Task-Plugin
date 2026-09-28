@@ -14,7 +14,6 @@ using Microsoft.Extensions.Logging;
 
 namespace Jellyfin.Plugin.SortTitleUpdater
 {
-    // Implemented IDisposable to safely release server managers during plugin uninstallation
     public class UpdateSortTitleTask : IScheduledTask, IDisposable
     {
         private ILibraryManager _libraryManager;
@@ -61,22 +60,33 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                 return;
             }
 
-            var allMediaKinds = new[]
+            if (config.TargetMediaKinds == null || config.TargetMediaKinds.Count == 0)
             {
-                BaseItemKind.Movie,
-                BaseItemKind.Series,
-                BaseItemKind.MusicArtist,
-                BaseItemKind.MusicAlbum,
-                BaseItemKind.Audio,
-                BaseItemKind.Book,
-                BaseItemKind.AudioBook,
-                BaseItemKind.Video,
-                BaseItemKind.BoxSet
-            };
+                _logger.LogWarning("Task cancelled: No target media types selected in plugin settings.");
+                progress.Report(100);
+                return;
+            }
+
+            // DYNAMIC FIX: Map saved config strings back into valid BaseItemKind enums
+            var selectedMediaKinds = new List<BaseItemKind>();
+            foreach (var kindStr in config.TargetMediaKinds)
+            {
+                if (Enum.TryParse<BaseItemKind>(kindStr, true, out var kindEnum))
+                {
+                    selectedMediaKinds.Add(kindEnum);
+                }
+            }
+
+            if (selectedMediaKinds.Count == 0)
+            {
+                _logger.LogWarning("Task cancelled: Could not parse any valid media types from configuration.");
+                progress.Report(100);
+                return;
+            }
 
             var query = new InternalItemsQuery
             {
-                IncludeItemTypes = allMediaKinds,
+                IncludeItemTypes = selectedMediaKinds.ToArray(), // Array loaded dynamically from web config
                 Recursive = true,
                 AncestorIds = config.TargetLibraryIds.ToArray()
             };
@@ -160,7 +170,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
             _logger.LogInformation("Sort Title encoding task completed successfully.");
         }
 
-        // Nullify external manager references to clear AppDomain ties upon disposal
         public void Dispose()
         {
             _libraryManager = null!;
