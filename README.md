@@ -41,6 +41,10 @@ The plugin takes the original `Title` (Name) of any media asset and encodes ever
 3. Navigate to **Dashboard -> Scheduled Tasks**.
 4. Run the **Update Library Sort Titles** task manually or let it trigger automatically according to your preferred schedule (defaults to daily at 2:00 AM).
 
+## Bugs
+1. Uninstallation doesn't work. You need to manually remove if needed. Similar issue mentioned here https://github.com/jellyfin/jellyfin/issues/12136
+2. Installed plug-in image disappears. Similar issue mentioned here https://github.com/jellyfin/jellyfin/issues/5167
+
 ## License
 This project is licensed under the MIT License.
 
