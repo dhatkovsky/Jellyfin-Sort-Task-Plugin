@@ -52,6 +52,7 @@ namespace Jellyfin.Plugin.SortTitleUpdater
 
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
+            // Load plugin configuration
             var config = Plugin.Instance?.Configuration;
             if (config == null || config.TargetLibraryIds == null || config.TargetLibraryIds.Count == 0)
             {
@@ -60,29 +61,57 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                 return;
             }
 
-            if (config.TargetMediaKinds == null || config.TargetMediaKinds.Count == 0)
+            var savedKinds = config.TargetMediaKinds;
+            if (savedKinds == null || savedKinds.Count == 0)
             {
-                _logger.LogWarning("Task cancelled: No target media types selected in plugin settings.");
-                progress.Report(100);
-                return;
+                _logger.LogInformation("No media types found in config file. Falling back to all default media types.");
+                savedKinds = new List<string> { "Movie", "Series", "MusicArtist", "MusicAlbum", "Audio", "Book", "AudioBook", "Video", "BoxSet" };
             }
 
-            // DYNAMIC FIX: Map saved config strings back into valid BaseItemKind enums
+            // CRITICAL FIX: Explicitly map strings to avoid modern Jellyfin 12 Enum.TryParse failures
             var selectedMediaKinds = new List<BaseItemKind>();
-            foreach (var kindStr in config.TargetMediaKinds)
+            foreach (var kindStr in savedKinds)
             {
-                if (Enum.TryParse<BaseItemKind>(kindStr, true, out var kindEnum))
+                if (string.IsNullOrEmpty(kindStr)) continue;
+
+                switch (kindStr.Trim().ToLowerInvariant())
                 {
-                    selectedMediaKinds.Add(kindEnum);
+                    case "movie": selectedMediaKinds.Add(BaseItemKind.Movie); break;
+                    case "series": selectedMediaKinds.Add(BaseItemKind.Series); break;
+                    case "musicartist": selectedMediaKinds.Add(BaseItemKind.MusicArtist); break;
+                    case "musicalbum": selectedMediaKinds.Add(BaseItemKind.MusicAlbum); break;
+                    case "audio": selectedMediaKinds.Add(BaseItemKind.Audio); break;
+                    case "book": selectedMediaKinds.Add(BaseItemKind.Book); break;
+                    case "audiobook": selectedMediaKinds.Add(BaseItemKind.AudioBook); break;
+                    case "video": selectedMediaKinds.Add(BaseItemKind.Video); break;
+                    case "boxset": selectedMediaKinds.Add(BaseItemKind.BoxSet); break;
+                    default:
+                        _logger.LogWarning("Unknown media type string in configuration: {KindStr}", kindStr);
+                        break;
                 }
             }
 
+            // Fallback just in case everything failed
             if (selectedMediaKinds.Count == 0)
             {
-                _logger.LogWarning("Task cancelled: Could not parse any valid media types from configuration.");
-                progress.Report(100);
-                return;
+                _logger.LogWarning("Mapping failed. Forcing all default media kinds to prevent empty task execution.");
+                selectedMediaKinds.AddRange(new[] {
+                    BaseItemKind.Movie, BaseItemKind.Series, BaseItemKind.MusicArtist,
+                    BaseItemKind.MusicAlbum, BaseItemKind.Audio, BaseItemKind.Book,
+                    BaseItemKind.AudioBook, BaseItemKind.Video, BaseItemKind.BoxSet
+                });
             }
+
+            // Log verified target kinds to logs for debugging
+            _logger.LogInformation("SortTitleUpdater is starting query for kinds: {Kinds}",
+                string.Join(", ", selectedMediaKinds.Select(k => k.ToString())));
+
+            var query = new InternalItemsQuery
+            {
+                IncludeItemTypes = selectedMediaKinds.ToArray(),
+                Recursive = true,
+                AncestorIds = config.TargetLibraryIds.ToArray()
+            };
 
             var query = new InternalItemsQuery
             {
