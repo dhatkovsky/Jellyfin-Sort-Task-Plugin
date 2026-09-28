@@ -4,7 +4,6 @@ A custom, high-performance plugin for **Jellyfin 12** built on **.NET 10**. This
 
 It is designed to solve complex multi-language (Cyrillic, Mandarin, Japanese and many more) sorting issues by guaranteeing a strict binary character-by-character ordering across your entire library.
 There might be sorting issues for languages using some alphabets like Belarusian, Serbian, Ukrainian for Cyrillic or Polish for Latin alphabet, so if issue remains, please, feel free to fork or post a request with details what to update.
-Sorting of Seasons is switched off so that Season 10 will not come before Season 2.
 Please, ensure you use .nfo files in the configuration of your libraries.
 
 ## How the Algorithm Works
