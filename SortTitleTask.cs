@@ -52,7 +52,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
 
         public async Task ExecuteAsync(IProgress<double> progress, CancellationToken cancellationToken)
         {
-            // Load plugin configuration
             var config = Plugin.Instance?.Configuration;
             if (config == null || config.TargetLibraryIds == null || config.TargetLibraryIds.Count == 0)
             {
@@ -68,7 +67,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                 savedKinds = new List<string> { "Movie", "Series", "MusicArtist", "MusicAlbum", "Audio", "Book", "AudioBook", "Video", "BoxSet" };
             }
 
-            // CRITICAL FIX: Explicitly map strings to avoid modern Jellyfin 12 Enum.TryParse failures
             var selectedMediaKinds = new List<BaseItemKind>();
             foreach (var kindStr in savedKinds)
             {
@@ -91,7 +89,6 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                 }
             }
 
-            // Fallback just in case everything failed
             if (selectedMediaKinds.Count == 0)
             {
                 _logger.LogWarning("Mapping failed. Forcing all default media kinds to prevent empty task execution.");
@@ -102,20 +99,12 @@ namespace Jellyfin.Plugin.SortTitleUpdater
                 });
             }
 
-            // Log verified target kinds to logs for debugging
             _logger.LogInformation("SortTitleUpdater is starting query for kinds: {Kinds}",
                 string.Join(", ", selectedMediaKinds.Select(k => k.ToString())));
 
             var query = new InternalItemsQuery
             {
                 IncludeItemTypes = selectedMediaKinds.ToArray(),
-                Recursive = true,
-                AncestorIds = config.TargetLibraryIds.ToArray()
-            };
-
-            var query = new InternalItemsQuery
-            {
-                IncludeItemTypes = selectedMediaKinds.ToArray(), // Array loaded dynamically from web config
                 Recursive = true,
                 AncestorIds = config.TargetLibraryIds.ToArray()
             };
