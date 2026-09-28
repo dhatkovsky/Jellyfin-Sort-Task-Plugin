@@ -102,21 +102,34 @@ namespace Jellyfin.Plugin.SortTitleUpdater
             _logger.LogInformation("SortTitleUpdater is starting query for kinds: {Kinds}",
                 string.Join(", ", selectedMediaKinds.Select(k => k.ToString())));
 
+
+            // Считываем выбранные ID библиотек в HashSet для сверхбыстрого поиска в памяти
+            var targetLibraryGuids = new HashSet<Guid>(config.TargetLibraryIds ?? new List<Guid>());
+
+            // Запрашиваем ВСЕ элементы выбранных типов на сервере глобально
             var query = new InternalItemsQuery
             {
                 IncludeItemTypes = selectedMediaKinds.ToArray(),
-                Recursive = true,
-                AncestorIds = config.TargetLibraryIds.ToArray()
+                Recursive = true
+                // Убрали AncestorIds, чтобы обойти ошибку несовпадения ID виртуальных папок
             };
 
-            var items = _libraryManager.GetItemList(query);
+            var allItems = _libraryManager.GetItemList(query);
+
+            // Фильтруем элементы в памяти: оставляем только те, которые физически находятся внутри выбранных библиотек
+            var items = allItems.Where(item =>
+                item != null &&
+                item.GetAncestorIds().Any(ancestorId => targetLibraryGuids.Contains(ancestorId))
+            ).ToList();
 
             if (items.Count == 0)
             {
-                _logger.LogInformation("No items found to update in the selected libraries.");
+                _logger.LogInformation("No items matched the selected libraries criteria. Total global items checked: {Count}", allItems.Count);
                 progress.Report(100);
                 return;
             }
+
+            _logger.LogInformation("Successfully found {Count} media items to process inside selected libraries.", items.Count);
 
             double total = items.Count;
             double current = 0;
